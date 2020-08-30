@@ -2,5 +2,7 @@
     <string name="app_name">Developers Life</string>
     <string name="next_picture_button_text">Next</string>
     <string name="prev_picture">Back</string>
-    <string name="description_loading">Loading...</string>
+    <string name="no_connection_warning">Ошибка при загрузке данных!</string>
+    <string name="no_connection_warning_text">Проверьте подключение к сети.</string>
+    <string name="description_loading">Загружаем...</string>
 </resources>

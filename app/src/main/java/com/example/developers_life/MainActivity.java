@@ -2,29 +2,36 @@ package com.example.developers_life;
 
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.example.developers_life.models.HideProgressBarGlideRequestListener;
 import com.example.developers_life.models.ImageAPIService;
 import com.example.developers_life.models.ImageResponse;
+import com.example.developers_life.models.ImagesAPIRetrofitClient;
+import com.example.developers_life.models.NoConnectivityException;
 
 import java.util.LinkedList;
 import java.util.ListIterator;
-import java.util.Optional;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
 
     private ImageView imageView;
     private TextView descriptionTextView;
+    private Button backButton;
+    private ProgressBar progressBar;
+    private TextView noConnectionWarning;
+    private TextView noConnectionWarningText;
 
     private ImageAPIService imageAPIService;
 
@@ -34,11 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     public MainActivity() {
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://developerslife.ru/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
+        Retrofit retrofit = ImagesAPIRetrofitClient.getRetrofitClient(this);
         imageAPIService = retrofit.create(ImageAPIService.class);
 
     }
@@ -50,9 +53,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         imageView = findViewById(R.id.imageView);
-        descriptionTextView = findViewById(R.id.image_description);
+        descriptionTextView = findViewById(R.id.imageDescription);
+        backButton = findViewById(R.id.backButton);
+        progressBar = findViewById(R.id.preloader);
+        noConnectionWarning = findViewById(R.id.noConnectionWarning);
+        noConnectionWarningText = findViewById(R.id.noConnectionWarningText);
 
         getNextImage(null);
+
+        backButton.setEnabled(false);
 
     }
 
@@ -60,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (imageResponsesHistoryIterator.hasNext()) {
             showImageAndDescription(imageResponsesHistoryIterator.next());
+            updateBackButtonEnabledState();
         } else {
             getAndStoreRandomImage();
         }
@@ -67,16 +77,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void getPreviousImageFromCache(View view) {
-
-        Optional<ImageResponse> previousImageResponse = getPreviousImageResponseFromHistory();
-        if (!previousImageResponse.isPresent())
-            return;
-
-        showImageAndDescription(previousImageResponse.get());
-
+        showImageAndDescription(getPreviousImageResponseFromHistory());
+        updateBackButtonEnabledState();
     }
 
     public void getAndStoreRandomImage() {
+
+        progressBar.setVisibility(View.VISIBLE);
 
         imageAPIService.getRandomImage().enqueue(new Callback<ImageResponse>() {
 
@@ -86,15 +93,24 @@ public class MainActivity extends AppCompatActivity {
                 if (!response.isSuccessful())
                     return;
 
-                ImageResponse image = response.body();
+                toggleViewsOnConnectionStatusChange(true);
 
+                ImageResponse image = response.body();
                 imageResponsesHistoryIterator.add(image);
+
                 showImageAndDescription(image);
+                updateBackButtonEnabledState();
 
             }
 
             @Override
-            public void onFailure(Call<ImageResponse> call, Throwable t) {}
+            public void onFailure(Call<ImageResponse> call, Throwable t) {
+
+                if (t instanceof NoConnectivityException) {
+                    toggleViewsOnConnectionStatusChange(false);
+                }
+
+            }
 
         });
 
@@ -109,21 +125,34 @@ public class MainActivity extends AppCompatActivity {
 
         Glide.with(MainActivity.this)
                 .load(sourceImageResponse.getGifURL())
+                .listener(new HideProgressBarGlideRequestListener(progressBar))
                 .into(imageView);
 
     }
 
-    private Optional<ImageResponse> getPreviousImageResponseFromHistory() {
-
-        if (imageResponsesHistory.size() <= 1
-                || imageResponsesHistoryIterator.previousIndex() == 0
-                || !imageResponsesHistoryIterator.hasPrevious())
-            return Optional.empty();
+    private ImageResponse getPreviousImageResponseFromHistory() {
 
         imageResponsesHistoryIterator.previous();
-        return Optional.ofNullable(
-                imageResponsesHistory.get(imageResponsesHistoryIterator.previousIndex())
-        );
+        return imageResponsesHistory.get(imageResponsesHistoryIterator.previousIndex());
+
+    }
+
+    private void toggleViewsOnConnectionStatusChange(boolean isConnectionAvailable) {
+
+        imageView.setVisibility(isConnectionAvailable ? View.VISIBLE : View.INVISIBLE);
+        progressBar.setVisibility(isConnectionAvailable ? View.VISIBLE : View.INVISIBLE);
+
+        noConnectionWarning.setVisibility(isConnectionAvailable ? View.INVISIBLE : View.VISIBLE);
+        noConnectionWarningText.setVisibility(isConnectionAvailable ? View.INVISIBLE : View.VISIBLE);
+
+    }
+
+    private boolean updateBackButtonEnabledState() {
+
+        boolean isBackButtonEnabled = imageResponsesHistory.size() > 1 &&
+                imageResponsesHistoryIterator.previousIndex() != 0;
+        backButton.setEnabled(isBackButtonEnabled);
+        return isBackButtonEnabled;
 
     }
 
