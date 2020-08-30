@@ -11,6 +11,10 @@ import com.bumptech.glide.Glide;
 import com.example.developers_life.models.ImageAPIService;
 import com.example.developers_life.models.ImageResponse;
 
+import java.util.LinkedList;
+import java.util.ListIterator;
+import java.util.Optional;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -23,6 +27,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView descriptionTextView;
 
     private ImageAPIService imageAPIService;
+
+    private LinkedList<ImageResponse> imageResponsesHistory = new LinkedList<>();
+    private ListIterator<ImageResponse> imageResponsesHistoryIterator =
+            imageResponsesHistory.listIterator();
 
     public MainActivity() {
 
@@ -42,24 +50,51 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         imageView = findViewById(R.id.imageView);
-        descriptionTextView = findViewById(R.id.textView);
+        descriptionTextView = findViewById(R.id.image_description);
 
-        getRandomImage(null);
+        getNextImage(null);
 
     }
 
-    public void getRandomImage(View view) {
+    public void getNextImage(View view) {
+
+        if (imageResponsesHistoryIterator.hasNext()) {
+            showImageAndDescription(imageResponsesHistoryIterator.next());
+        } else {
+            getAndStoreRandomImage();
+        }
+
+    }
+
+    public void getPreviousImageFromCache(View view) {
+
+        Optional<ImageResponse> previousImageResponse = getPreviousImageResponseFromHistory();
+        if (!previousImageResponse.isPresent())
+            return;
+
+        showImageAndDescription(previousImageResponse.get());
+
+    }
+
+    public void getAndStoreRandomImage() {
 
         imageAPIService.getRandomImage().enqueue(new Callback<ImageResponse>() {
 
             @Override
             public void onResponse(Call<ImageResponse> call, Response<ImageResponse> response) {
-                if (!response.isSuccessful()) return;
-                showImageAndDescription(response.body());
+
+                if (!response.isSuccessful())
+                    return;
+
+                ImageResponse image = response.body();
+
+                imageResponsesHistoryIterator.add(image);
+                showImageAndDescription(image);
+
             }
 
             @Override
-            public void onFailure(Call<ImageResponse> call, Throwable t) { }
+            public void onFailure(Call<ImageResponse> call, Throwable t) {}
 
         });
 
@@ -75,6 +110,20 @@ public class MainActivity extends AppCompatActivity {
         Glide.with(MainActivity.this)
                 .load(sourceImageResponse.getGifURL())
                 .into(imageView);
+
+    }
+
+    private Optional<ImageResponse> getPreviousImageResponseFromHistory() {
+
+        if (imageResponsesHistory.size() <= 1
+                || imageResponsesHistoryIterator.previousIndex() == 0
+                || !imageResponsesHistoryIterator.hasPrevious())
+            return Optional.empty();
+
+        imageResponsesHistoryIterator.previous();
+        return Optional.ofNullable(
+                imageResponsesHistory.get(imageResponsesHistoryIterator.previousIndex())
+        );
 
     }
 
