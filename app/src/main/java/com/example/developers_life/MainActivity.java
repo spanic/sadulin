@@ -2,7 +2,6 @@ package com.example.developers_life;
 
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -17,6 +16,7 @@ import com.example.developers_life.models.ImageAPIService;
 import com.example.developers_life.models.ImageResponse;
 import com.example.developers_life.models.ImagesAPIRetrofitClient;
 import com.example.developers_life.models.NoConnectivityException;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -35,10 +35,10 @@ public class MainActivity extends AppCompatActivity {
     private CardView cardView;
     private ImageView imageView;
     private TextView descriptionTextView;
-    private Button backButton;
     private ProgressBar progressBar;
     private TextView noConnectionWarning;
     private TextView noConnectionWarningText;
+    private FloatingActionButton backButton;
 
     private ImageAPIService imageAPIService;
 
