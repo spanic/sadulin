@@ -9,6 +9,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import com.bumptech.glide.Glide;
 import com.example.developers_life.models.HideProgressBarGlideRequestListener;
@@ -31,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private static String IMAGES_HISTORY_STATE_KEY = "IMAGES_HISTORY";
     private static String CURRENT_IMAGE_INDEX_STATE_KEY = "CURRENT_IMAGE_INDEX";
 
+    private CardView cardView;
     private ImageView imageView;
     private TextView descriptionTextView;
     private Button backButton;
@@ -57,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        cardView = findViewById(R.id.cardView);
         imageView = findViewById(R.id.imageView);
         descriptionTextView = findViewById(R.id.imageDescription);
         backButton = findViewById(R.id.backButton);
@@ -64,7 +67,15 @@ public class MainActivity extends AppCompatActivity {
         noConnectionWarning = findViewById(R.id.noConnectionWarning);
         noConnectionWarningText = findViewById(R.id.noConnectionWarningText);
 
+        boolean isActivityStateRestored = this.restoreSavedImageHistory(savedInstanceState);
 
+        if (isActivityStateRestored) {
+            this.showImageAndDescription(this.imageResponsesHistoryIterator.next());
+        } else {
+            getNextImage(null);
+        }
+
+        this.updateBackButtonEnabledState();
 
     }
 
@@ -144,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
     private void toggleConnectionLostWarning(boolean isWarningVisible) {
 
         progressBar.setVisibility(View.INVISIBLE);
-        imageView.setVisibility(isWarningVisible ? View.VISIBLE : View.INVISIBLE);
+        cardView.setVisibility(isWarningVisible ? View.VISIBLE : View.INVISIBLE);
 
         noConnectionWarning.setVisibility(isWarningVisible ? View.INVISIBLE : View.VISIBLE);
         noConnectionWarningText.setVisibility(isWarningVisible ? View.INVISIBLE : View.VISIBLE);
