@@ -64,15 +64,7 @@ public class MainActivity extends AppCompatActivity {
         noConnectionWarning = findViewById(R.id.noConnectionWarning);
         noConnectionWarningText = findViewById(R.id.noConnectionWarningText);
 
-        boolean isActivityStateRestored = this.restoreSavedImageHistory(savedInstanceState);
 
-        if (isActivityStateRestored) {
-            this.showImageAndDescription(this.imageResponsesHistoryIterator.next());
-        } else {
-            getNextImage(null);
-        }
-
-        this.updateBackButtonEnabledState();
 
     }
 
@@ -89,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void getPreviousImageFromCache(View view) {
         showImageAndDescription(getPreviousImageResponseFromHistory());
+        toggleConnectionLostWarning(true);
         updateBackButtonEnabledState();
     }
 
@@ -104,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
                 if (!response.isSuccessful())
                     return;
 
-                toggleViewsOnConnectionStatusChange(true);
+                toggleConnectionLostWarning(true);
 
                 ImageResponse image = response.body();
                 imageResponsesHistoryIterator.add(image);
@@ -118,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(Call<ImageResponse> call, Throwable t) {
 
                 if (t instanceof NoConnectivityException) {
-                    toggleViewsOnConnectionStatusChange(false);
+                    toggleConnectionLostWarning(false);
                 }
 
             }
@@ -148,13 +141,13 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void toggleViewsOnConnectionStatusChange(boolean isConnectionAvailable) {
+    private void toggleConnectionLostWarning(boolean isWarningVisible) {
 
-        imageView.setVisibility(isConnectionAvailable ? View.VISIBLE : View.INVISIBLE);
-        progressBar.setVisibility(isConnectionAvailable ? View.VISIBLE : View.INVISIBLE);
+        progressBar.setVisibility(View.INVISIBLE);
+        imageView.setVisibility(isWarningVisible ? View.VISIBLE : View.INVISIBLE);
 
-        noConnectionWarning.setVisibility(isConnectionAvailable ? View.INVISIBLE : View.VISIBLE);
-        noConnectionWarningText.setVisibility(isConnectionAvailable ? View.INVISIBLE : View.VISIBLE);
+        noConnectionWarning.setVisibility(isWarningVisible ? View.INVISIBLE : View.VISIBLE);
+        noConnectionWarningText.setVisibility(isWarningVisible ? View.INVISIBLE : View.VISIBLE);
 
     }
 
@@ -200,9 +193,9 @@ public class MainActivity extends AppCompatActivity {
         boolean isSavedImagesHistoryExists = savedImagesHistory != null && savedImagesHistory.size() > 0;
 
         if (isSavedImagesHistoryExists) {
-            this.imageResponsesHistory = savedImagesHistory;
+            imageResponsesHistory = savedImagesHistory;
             int currentImageIndex = savedInstanceState.getInt(MainActivity.CURRENT_IMAGE_INDEX_STATE_KEY);
-            this.imageResponsesHistoryIterator = savedImagesHistory.listIterator(currentImageIndex);
+            imageResponsesHistoryIterator = savedImagesHistory.listIterator(currentImageIndex);
         }
 
         return isSavedImagesHistoryExists;
