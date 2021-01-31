@@ -7,6 +7,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
@@ -17,6 +18,7 @@ import com.example.developers_life.models.ImagesAPIRetrofitClient;
 import com.example.developers_life.models.NoConnectivityException;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 
 import retrofit2.Call;
@@ -25,6 +27,9 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static String IMAGES_HISTORY_STATE_KEY = "IMAGES_HISTORY";
+    private static String CURRENT_IMAGE_INDEX_STATE_KEY = "CURRENT_IMAGE_INDEX";
 
     private ImageView imageView;
     private TextView descriptionTextView;
@@ -35,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageAPIService imageAPIService;
 
-    private LinkedList<ImageResponse> imageResponsesHistory = new LinkedList<>();
+    private List<ImageResponse> imageResponsesHistory = new LinkedList<>();
     private ListIterator<ImageResponse> imageResponsesHistoryIterator =
             imageResponsesHistory.listIterator();
 
@@ -59,9 +64,15 @@ public class MainActivity extends AppCompatActivity {
         noConnectionWarning = findViewById(R.id.noConnectionWarning);
         noConnectionWarningText = findViewById(R.id.noConnectionWarningText);
 
-        getNextImage(null);
+        boolean isActivityStateRestored = this.restoreSavedImageHistory(savedInstanceState);
 
-        backButton.setEnabled(false);
+        if (isActivityStateRestored) {
+            this.showImageAndDescription(this.imageResponsesHistoryIterator.next());
+        } else {
+            getNextImage(null);
+        }
+
+        this.updateBackButtonEnabledState();
 
     }
 
@@ -149,10 +160,52 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean updateBackButtonEnabledState() {
 
-        boolean isBackButtonEnabled = imageResponsesHistory.size() > 1 &&
-                imageResponsesHistoryIterator.previousIndex() != 0;
+        boolean isBackButtonEnabled =
+                imageResponsesHistory.size() > 1 &&
+                        imageResponsesHistoryIterator.previousIndex() != 0;
         backButton.setEnabled(isBackButtonEnabled);
         return isBackButtonEnabled;
+
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+
+        outState.putSerializable(
+                MainActivity.IMAGES_HISTORY_STATE_KEY,
+                (LinkedList<ImageResponse>) imageResponsesHistory
+        );
+
+        outState.putInt(
+                MainActivity.CURRENT_IMAGE_INDEX_STATE_KEY,
+                imageResponsesHistoryIterator.previousIndex()
+        );
+
+        super.onSaveInstanceState(outState);
+
+    }
+
+    private boolean restoreSavedImageHistory(Bundle savedInstanceState) {
+
+        if (savedInstanceState == null ||
+                !savedInstanceState.containsKey(MainActivity.IMAGES_HISTORY_STATE_KEY) &&
+                        !savedInstanceState.containsKey(MainActivity.CURRENT_IMAGE_INDEX_STATE_KEY)
+        ) {
+            return false;
+        }
+
+        List<ImageResponse> savedImagesHistory = (LinkedList<ImageResponse>)
+                savedInstanceState.getSerializable(MainActivity.IMAGES_HISTORY_STATE_KEY);
+
+        boolean isSavedImagesHistoryExists = savedImagesHistory != null && savedImagesHistory.size() > 0;
+
+        if (isSavedImagesHistoryExists) {
+            this.imageResponsesHistory = savedImagesHistory;
+            int currentImageIndex = savedInstanceState.getInt(MainActivity.CURRENT_IMAGE_INDEX_STATE_KEY);
+            this.imageResponsesHistoryIterator = savedImagesHistory.listIterator(currentImageIndex);
+        }
+
+        return isSavedImagesHistoryExists;
 
     }
 
